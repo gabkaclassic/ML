@@ -7,6 +7,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Random;
+import java.util.stream.Stream;
 
 public class Main {
 
@@ -16,7 +18,7 @@ public class Main {
 
     private Main(){
 
-        web = new Web(BORDER * BORDER, 10);
+        web = new Web(14 * 14, 10);
     }
 
     public static void main(String[] args) {
@@ -32,6 +34,7 @@ public class Main {
                     .filter(Files::isRegularFile)
                     .map(Path::toFile)
                     .filter(f -> {
+
                         try {
 
                             Data data = new Data(ImageIO.read(f));
@@ -41,13 +44,9 @@ public class Main {
 
                             double answer = result.stream().max(Comparator.naturalOrder()).get();
 
-                            result.stream().forEach(d -> System.out.print(d + " "));
-                            System.out.println();
-                            System.out.println(result.indexOf(answer));
-
                             web.learn(data.getRightAnswers());
 
-                            return (result.indexOf(answer) == data.getRightAnswers().indexOf(1));
+                            return (result.indexOf(answer) == Integer.parseInt(String.valueOf(f.getName().charAt(10))));
                         } catch (IOException e) { e.printStackTrace(); }
                         return false;
                     }).count();

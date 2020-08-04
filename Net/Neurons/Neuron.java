@@ -6,10 +6,12 @@ import java.util.stream.Stream;
 
 public abstract class Neuron {
 
-    protected static final double BORDER_ACTIVATION = 0.5;
-    protected static final double LEARNING_RATE = 0.5;
+    protected static final double BORDER_ACTIVATION = 0.00003;
+    protected static final double LEARNING_RATE = 0.1;
 
     protected static final Random random = new Random();
+
+    protected double output;
 
     protected List<Double> weights;
     protected Queue<Double> input;
@@ -20,35 +22,33 @@ public abstract class Neuron {
         input = new LinkedList<>();
         deltaWeights = new LinkedList<>();
 
-        setWeights(countPreviewLay);
+        setStartedWeights(countPreviewLay);
     }
 
-    protected void setWeights(int countPreviewLay) { weights = Stream.generate(() -> random.nextDouble()).limit(countPreviewLay).collect(Collectors.toList()); }
+    protected void setStartedWeights(int countPreviewLay) { weights = Stream.generate(() -> (new Random()).nextDouble()).limit(countPreviewLay).collect(Collectors.toList()); }
 
-    public void setInput(double in) { input.add(in); }
+    public void setInput(Neuron neuron) { input.add(neuron.getOutput()); }
 
-    public double getOutput() { return derivativeFunction(sumBlock()); }
+    protected double getOutput() { return output; }
+
+    protected void setOutput() { output = derivativeFunction(sumBlock()); }
 
     public void changeWeights() {
 
-        setDeltaWeights();
+        calculateDeltaWeights();
 
         Iterator<Double> dw = deltaWeights.iterator();
 
         weights = weights.stream().map(w -> {
 
-            while(dw.hasNext())
-
-            if(!dw.hasNext() || input.isEmpty()) return w ;
+            if(input.isEmpty() || !dw.hasNext()) return w ;
 
             return (w + (LEARNING_RATE * dw.next() * input.poll()));
         }).collect(Collectors.toList());
 
     }
 
-    public void addDeltaWeightInput(double dw) { deltaWeights.add(dw); }
-
-    protected void setDeltaWeights() {
+    protected void calculateDeltaWeights() {
 
         double deltaWeightInput = (deltaWeights.stream().mapToDouble(d -> d).sum() / deltaWeights.size());
 
@@ -60,22 +60,17 @@ public abstract class Neuron {
         }).collect(Collectors.toCollection(LinkedList:: new));
     }
 
-    private double sumBlock() {
+    protected double sumBlock() {
 
         Iterator<Double> in = input.iterator();
 
          double answer = weights.stream().map(w -> w * in.next()).mapToDouble(d -> d).sum();
 
          if(answer > BORDER_ACTIVATION) return answer;
-         return -answer;
+         return 0;
     }
 
-    private double functionActivation(final double x) {
-
-        double f = (2 / (1 + Math.pow(Math.E, (-2 * x))) - 1);
-
-        return f;
-    }
+    private double functionActivation(final double x) { return (2 / (1 + Math.pow(Math.E, (-2 * x))) - 1); }
 
     protected double derivativeFunction(double x) {
 
@@ -84,13 +79,7 @@ public abstract class Neuron {
         return (d * (1 - d));
     }
 
-    public List<Double> getDeltaWeights() {
+    protected void setDeltaWeights(Neuron neuron) { deltaWeights.add(neuron.getDeltaWeights()); }
 
-        List<Double> dw = new LinkedList<>();
-
-        while(!deltaWeights.isEmpty())
-            dw.add(deltaWeights.poll());
-
-        return dw;
-    }
+    private double getDeltaWeights() { return deltaWeights.poll(); }
 }

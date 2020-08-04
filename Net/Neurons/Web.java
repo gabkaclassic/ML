@@ -14,8 +14,6 @@ public class Web {
     private final List<HiddenNeuron> hidden;
     private final List<OutputNeuron> output;
 
-    private List<Double> answers;
-
     public Web(final int input, final int output) {
 
         IN = input;
@@ -27,39 +25,57 @@ public class Web {
         this.output = Stream.generate(() -> new OutputNeuron(HIDDEN)).limit(OUT).collect(Collectors.toList());
     }
 
-    public List<Double> think(List<Double> in) {
+    public List<Double> think(Deque<Double> in) {
 
-        Iterator<Double> iterator = in.iterator();
+        List<Double> list = new ArrayList<>();
 
-        input.stream().forEach(n -> n.setInput(iterator.next()));
+       for(InputNeuron n: input) {
 
-        answers = input.stream().map(n -> n.getOutput()).collect(Collectors.toList());
+           n.setInput(in.poll());
+           n.setOutput();
+       }
 
-        answers.stream().forEach(a -> {
-            hidden.stream().forEach(n -> n.setInput(a));
-        });
 
-        answers = hidden.stream().map(n -> n.getOutput()).collect(Collectors.toList());
+        for(HiddenNeuron n: hidden) {
 
-        answers.stream().forEach(a -> {
-            output.stream().forEach(n -> n.setInput(a));
-        });
+            for(Neuron i: input)
+                n.setInput(i);
 
-        return (answers = output.stream().map(n -> n.getOutput()).collect(Collectors.toList()));
+            n.setOutput();
+        }
+
+        for(OutputNeuron n: output) {
+
+            for(Neuron h: hidden)
+                n.setInput(h);
+
+            n.setOutput();
+            list.add(n.getOutput());
+        }
+
+        return list;
     }
 
-    public void learn(List<Double> rightAnswers) {
+    public void learn(Deque<Double> rightAnswers) {
 
-        Iterator<Double> iterator = rightAnswers.iterator();
+        for(OutputNeuron n: output) {
 
-        output.stream().forEach(n -> {
-            n.setRightAnswer(iterator.next());
+            n.setRightAnswer(rightAnswers.pollFirst());
             n.changeWeights();
-            n.getDeltaWeights().stream().forEachOrdered(dw -> {
-                hidden.stream().forEach(h -> h.addDeltaWeightInput(dw));
-                    });
-            hidden.stream().forEach(h -> h.changeWeights());
-                });
-    }
+        }
 
+        for(HiddenNeuron n: hidden) {
+
+            for(OutputNeuron o: output)
+                n.setDeltaWeights(o);
+            n.changeWeights();
+        }
+
+        for(InputNeuron n: input) {
+
+            for(HiddenNeuron h: hidden)
+                n.setDeltaWeights(h);
+            n.changeWeights();
+        }
+    }
 }
